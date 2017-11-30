@@ -3,8 +3,10 @@ package main
 import (
 	"fmt"
 	"golang.org/x/net/html"
+	"io/ioutil"
 	"net/http"
 	"os"
+	"regexp"
 	"strings"
 )
 
@@ -17,7 +19,7 @@ func getHref(t html.Token) (ok bool, href string) {
 			ok = true
 		}
 	}
-	
+
 	// "bare" return will return the variables (ok, href) as defined in
 	// the function definition
 	return
@@ -38,6 +40,18 @@ func crawl(url string, ch chan string, chFinished chan bool) {
 	}
 
 	b := resp.Body
+
+	//Specifically checking for the date hey updated the page
+
+	htmlData, err := ioutil.ReadAll(resp.Body)
+
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	re := regexp.MustCompile("(Last Updated:) (.+)")
+	fmt.Println(re.FindAllString(string(htmlData), -1))
+
 	defer b.Close() // close Body when the function returns
 
 	z := html.NewTokenizer(b)
@@ -79,7 +93,7 @@ func main() {
 
 	// Channels
 	chUrls := make(chan string)
-	chFinished := make(chan bool) 
+	chFinished := make(chan bool)
 
 	// Kick off the crawl process (concurrently)
 	for _, url := range seedUrls {
